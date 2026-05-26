@@ -107,7 +107,7 @@ all_questions = [
     }
 ]
 
-# 4. 세션 상태를 이용해 질문 순서 셔플 유지 (새로고침 시 문항 꼬임 방지)
+# 4. 세션 상태를 이용해 질문 순서 셔플 유지
 if 'shuffled_questions' not in st.session_state:
     shuffled = all_questions.copy()
     random.shuffle(shuffled)
@@ -119,10 +119,8 @@ user_answers = {}
 # 셔플된 순서대로 질문 출력
 for i, q in enumerate(st.session_state['shuffled_questions']):
     st.markdown(f"#### Q{i+1}. {q['text']}")
-    # 점수나 힌트 없이 순수한 텍스트 옵션만 제공
     choice = st.radio(f"선택지 (Q{i+1})", q['options'], label_visibility="collapsed", key=f"flow_{q['id']}")
     
-    # 선택한 답변의 인덱스를 찾아 실제 점수 매핑
     chosen_idx = q['options'].index(choice)
     user_answers[q['id']] = {
         "score": q['scores'][chosen_idx],
@@ -148,32 +146,3 @@ if st.button("🔮 초정밀 심층 리포트 열람하기"):
     
     # 기본 점수 계산
     base_score = sum(item['score'] for item in user_answers.values())
-    
-    # MBTI 및 애착유형에 따른 '현실 보정 알고리즘' 코드
-    mbti_comment = ""
-    attachment_comment = ""
-    
-    # 1) MBTI 보정 및 멘트
-    if "F" in my_mbti:
-        mbti_comment = "감정(F) 성향이 강해 상대방의 사소한 행동이나 말투 변화에 에너지를 많이 쓰고 계실 수 있습니다. 때로는 너무 깊은 의미 부여보다 단순하게 생각하는 것이 관계에 도움이 됩니다."
-    else:
-        mbti_comment = "이성(T) 성향이 강해 상대방의 행동을 지나치게 인과관계나 논리로만 분석하려 할 수 있습니다. 연애는 논리가 아닌 감정의 영역임을 기억해 주세요."
-        
-    # 2) 애착 유형 보정 (불안형은 실제보다 과소평가하는 경향 보정, 회피형은 과대평가 보정 등)
-    if "불안형" in attachment_style:
-        base_score = min(base_score + 5, 100)  # 불안해서 낮게 평가했을 확률 보정
-        attachment_comment = "현재 '불안형' 애착이 발동하면 상대방의 답장이 조금만 늦어져도 '나한테 식었나?'하고 오해하기 쉽습니다. 객관적 데이터보다 본인의 불안감이 신호를 왜곡할 수 있으니 한 템포 쉬어가세요."
-    elif "회피형" in attachment_style:
-        base_score = max(base_score - 3, 0)
-        attachment_comment = "상대방과 너무 가까워지면 본능적으로 구속감을 느껴 거리를 두려고 할 수 있습니다. 상대방의 호감을 귀찮음으로 오해하고 있지 않은지 점검해 보세요."
-    else:
-        attachment_comment = "안정적인 애착 성향을 가지고 계시므로 상대방의 시그널을 비교적 가장 객관적이고 정확하게 파악하고 계십니다."
-
-    # 최종 등급 결정
-    st.markdown("### 📊 AI 종합 판단 점수")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.metric(label="❤️ 보정 후 최종 호감 지수", value=f"{base_score}점")
-    with c2:
-        if base_score >= 85: st.success("등급: 🟢 그린라이트 프리패스")
-        elif base_score >= 60
