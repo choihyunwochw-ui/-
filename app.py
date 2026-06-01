@@ -120,7 +120,6 @@ with st.form(key='coaching_form'):
     # 셔플된 질문 출력 및 사용자 선택값 임시 저장
     for i, q in enumerate(st.session_state['shuffled_questions']):
         st.markdown(f"#### Q{i+1}. {q['text']}")
-        # 각 라디오 버튼이 충돌하지 않도록 고유한 key 부여
         choice = st.radio(
             label=f"Q{i+1}_label", 
             options=q['options'], 
@@ -130,10 +129,9 @@ with st.form(key='coaching_form'):
         user_selections[q['id']] = choice
         st.write("")
         
-    # 폼 내부의 제출 버튼
     submit_button = st.form_submit_button(label="🔮 초정밀 심층 리포트 열람하기")
 
-# 6. 버튼 클릭 시 결과 연산 및 출력 (Form 외부가 아니라 이 조건 안에서 완결)
+# 6. 버튼 클릭 시 결과 연산 및 출력
 if submit_button:
     with st.status("🧬 MBTI 및 애착 유형 분석 엔진 가동 중...", expanded=True) as status:
         time.sleep(0.8)
@@ -187,7 +185,7 @@ if submit_button:
     st.markdown("### 📊 AI 종합 판단 점수")
     c1, c2 = st.columns(2)
     with c1:
-        st.metric(label="❤️ 보정 후 최종 호감 지수", value=f"{base_score}점")
+        st.metric(label="❤️ 보정 후 최종 호감 지수", value=f"{int(base_score)}점")
     with c2:
         if base_score >= 85:
             st.success("등급: 🟢 그린라이트 프리패스")
@@ -198,7 +196,9 @@ if submit_button:
         else:
             st.error("등급: 🔴 관계 재정비 필요 (위험)")
 
-    st.progress(base_score / 100)
+    # [수정 가동] 안전하게 0~100 사이의 정수형태로 집어넣기
+    safe_progress_value = max(0, min(int(base_score), 100))
+    st.progress(safe_progress_value)
     
     st.write("")
     st.markdown("### 🔍 세부 영역별 스코어")
