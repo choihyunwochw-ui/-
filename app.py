@@ -9,9 +9,9 @@ st.title("🔮 초정밀 AI 연애 심층 진단 시스템")
 st.markdown("본 진단은 질문의 점수가 공개되지 않으며, 무작위로 출제되는 문항과 성향 분석을 통해 정밀한 결과를 도출합니다.")
 st.write("---")
 
-# 2. 사용자 프로필 및 성향 입력 (알고리즘 가중치 반영용)
+# 2. 사용자 프로필 및 성향 입력
 st.markdown("### 👤 STEP 1. 나의 성향 정보 입력")
-name = st.text_input("당신의 닉네임", value="매력쟁이")
+name = st.text_input("당신의 닉네임을 적어주세요", value="매력쟁이")
 
 col_mbti, col_type = st.columns(2)
 with col_mbti:
@@ -31,9 +31,9 @@ with col_type:
 
 st.write("---")
 st.markdown("### 📝 STEP 2. 연애 상황 심층 문항")
-st.caption("질문은 무작위 순서로 배치되며, 답변에 따른 점수는 비공개입니다.")
+st.caption("답변에 따른 점수는 비공개이며, 질문 순서는 매번 무작위로 변경됩니다.")
 
-# 3. 전체 질문 데이터 베이스 (점수 숨김 처리 및 구조화)
+# 3. 질문 데이터베이스 정의
 all_questions = [
     {
         "id": "q1",
@@ -107,42 +107,117 @@ all_questions = [
     }
 ]
 
-# 4. 세션 상태를 이용해 질문 순서 셔플 유지
+# 4. 세션 상태를 이용해 최초 1회만 질문 무작위 셔플하도록 고정
 if 'shuffled_questions' not in st.session_state:
     shuffled = all_questions.copy()
     random.shuffle(shuffled)
     st.session_state['shuffled_questions'] = shuffled
 
-# 사용자의 답변을 저장할 딕셔너리
-user_answers = {}
-
-# 셔플된 순서대로 질문 출력
-for i, q in enumerate(st.session_state['shuffled_questions']):
-    st.markdown(f"#### Q{i+1}. {q['text']}")
-    choice = st.radio(f"선택지 (Q{i+1})", q['options'], label_visibility="collapsed", key=f"flow_{q['id']}")
+# 5. 데이터 안전성을 위해 폼(Form) 구조 도입
+with st.form(key='coaching_form'):
+    user_selections = {}
     
-    chosen_idx = q['options'].index(choice)
-    user_answers[q['id']] = {
-        "score": q['scores'][chosen_idx],
-        "category": q['category']
-    }
-    st.write("")
+    # 셔플된 질문 출력 및 사용자 선택값 임시 저장
+    for i, q in enumerate(st.session_state['shuffled_questions']):
+        st.markdown(f"#### Q{i+1}. {q['text']}")
+        # 각 라디오 버튼이 충돌하지 않도록 고유한 key 부여
+        choice = st.radio(
+            label=f"Q{i+1}_label", 
+            options=q['options'], 
+            label_visibility="collapsed", 
+            key=f"radio_key_{q['id']}"
+        )
+        user_selections[q['id']] = choice
+        st.write("")
+        
+    # 폼 내부의 제출 버튼
+    submit_button = st.form_submit_button(label="🔮 초정밀 심층 리포트 열람하기")
 
-st.write("---")
-
-# 5. 종합 결과 분석 및 성향별 보정
-if st.button("🔮 초정밀 심층 리포트 열람하기"):
-    
+# 6. 버튼 클릭 시 결과 연산 및 출력 (Form 외부가 아니라 이 조건 안에서 완결)
+if submit_button:
     with st.status("🧬 MBTI 및 애착 유형 분석 엔진 가동 중...", expanded=True) as status:
-        time.sleep(1.0)
+        time.sleep(0.8)
         st.write(f"📊 {my_mbti} 성향의 인지 필터 적용 중...")
-        time.sleep(1.0)
+        time.sleep(0.8)
         st.write(f"⚖️ {attachment_style.split(' ')[0]}에 따른 인지 왜곡 가중치 보정 중...")
-        time.sleep(0.5)
+        time.sleep(0.4)
         status.update(label="진단 완료!", state="complete")
         
     st.write("---")
     st.markdown(f"## 📋 {name}님의 성향 기반 종합 진단서")
     
-    # 기본 점수 계산
-    base_score = sum(item['score'] for item in user_answers.values())
+    # 실제 점수 및 카테고리 누적 계산
+    base_score = 0
+    contact_score = 0
+    meet_score = 0
+    talk_score = 0
+    
+    for q in all_questions:
+        user_choice = user_selections[q['id']]
+        idx = q['options'].index(user_choice)
+        score_value = q['scores'][idx]
+        
+        base_score += score_value
+        if q['category'] == "연락":
+            contact_score += score_value
+        elif q['category'] == "만남":
+            meet_score += score_value
+        elif q['category'] == "대화":
+            talk_score += score_value
+
+    # 성향 보정치 계산
+    mbti_comment = ""
+    attachment_comment = ""
+    
+    if "F" in my_mbti:
+        mbti_comment = "감정(F) 성향이 강해 상대방의 사소한 행동이나 말투 변화에 에너지를 많이 쓰고 계실 수 있습니다. 때로는 너무 깊은 의미 부여보다 단순하게 생각하는 것이 관계에 도움이 됩니다."
+    else:
+        mbti_comment = "이성(T) 성향이 강해 상대방의 행동을 지나치게 인과관계나 논리로만 분석하려 할 수 있습니다. 연애는 논리가 아닌 감정의 영역임을 기억해 주세요."
+        
+    if "불안형" in attachment_style:
+        base_score = min(base_score + 5, 100)
+        attachment_comment = "현재 '불안형' 애착이 발동하면 상대방의 답장이 조금만 늦어져도 '나한테 식었나?'하고 오해하기 쉽습니다. 객관적 데이터보다 본인의 불안감이 신호를 왜곡할 수 있으니 한 템포 쉬어가세요."
+    elif "회피형" in attachment_style:
+        base_score = max(base_score - 3, 0)
+        attachment_comment = "상대방과 너무 가까워지면 본능적으로 구속감을 느껴 거리를 두려고 할 수 있습니다. 상대방의 호감을 귀찮음으로 오해하고 있지 않은지 점검해 보세요."
+    else:
+        attachment_comment = "안정적인 애착 성향을 가지고 계시므로 상대방의 시그널을 비교적 가장 객관적이고 정확하게 파악하고 계십니다."
+
+    # 최종 시각화 및 등급 출력
+    st.markdown("### 📊 AI 종합 판단 점수")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.metric(label="❤️ 보정 후 최종 호감 지수", value=f"{base_score}점")
+    with c2:
+        if base_score >= 85:
+            st.success("등급: 🟢 그린라이트 프리패스")
+        elif base_score >= 60:
+            st.info("등급: 🟡 밀당 및 호감 탐색 단계")
+        elif base_score >= 40:
+            st.warning("등급: 🟠 정체기 또는 단순 호의")
+        else:
+            st.error("등급: 🔴 관계 재정비 필요 (위험)")
+
+    st.progress(base_score / 100)
+    
+    st.write("")
+    st.markdown("### 🔍 세부 영역별 스코어")
+    rc1, rc2, rc3 = st.columns(3)
+    rc1.markdown(f"**📱 연락 지수:** {contact_score}/40점")
+    rc2.markdown(f"**☕ 만남 지수:** {meet_score}/40점")
+    rc3.markdown(f"**💬 대화 지수:** {talk_score}/20점")
+    
+    st.write("---")
+    st.markdown("### 🧠 성향 크로스 분석 결과")
+    st.info(f"🧬 **{name}님의 성향 맞춤 분석:**\n\n* **MBTI 가이드:** {mbti_comment}\n* **애착 유형 가이드:** {attachment_comment}")
+    
+    st.markdown("### 💡 종합 행동 지침")
+    if base_score >= 85:
+        st.balloons()
+        st.markdown(f"상대방은 이미 {name}님께 푹 빠져 있습니다. 본인의 성향({my_mbti})대로 솔직하게 직진하셔도 좋습니다. 고백 타이밍을 잡으세요!")
+    elif base_score >= 60:
+        st.markdown(f"서로에게 호감은 있으나 확신이 부족합니다. 카톡보다는 **만남 지수**를 높일 수 있는 단둘만의 스케줄을 잡는 데 집중하세요.")
+    elif base_score >= 40:
+        st.markdown(f"상대방이 당신을 단순 지인으로 생각할 확률이 높습니다. {name}님의 매력을 새롭게 어필할 수 있는 '반전 타이밍'이 필요합니다. 연락을 조금 줄여보세요.")
+    else:
+        st.markdown(f"현재 관계의 비대칭이 심각합니다. 마음은 아프지만 한 걸음 물러나 혼자만의 시간을 가지며 상대방의 반응을 기다리는 것이 최선입니다.")
